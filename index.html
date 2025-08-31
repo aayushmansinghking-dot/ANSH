@@ -1,0 +1,196 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JP Residency Guest Registration</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: linear-gradient(135deg,#d7e1ec,#fefefe); }
+    h1 { text-align: center; font-weight: bold; }
+    .page { display: none; }
+    .active { display: block; }
+    form { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+    label { display: block; margin-top: 10px; }
+    input, select, textarea { width: 100%; padding: 8px; margin-top: 5px; }
+    button { margin-top: 15px; padding: 10px 15px; background: #007bff; border: none; color: #fff; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    #dashboard { background: #f9fff9; padding: 20px; border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <h1>JP Residency Guest Registration and Booking Form</h1>
+
+  <!-- Home Page -->
+  <div id="homePage" class="page active">
+    <button onclick="showPage('newRegistration')">New Registration</button>
+    <button onclick="showPage('alreadyRegistered')">Already Registered</button>
+  </div>
+
+  <!-- New Registration Form -->
+  <div id="newRegistration" class="page">
+    <form id="registrationForm">
+      <h2>New Registration</h2>
+      <label>Full Name: <input type="text" id="fullName" required></label>
+      <label>Gender: 
+        <select id="gender">
+          <option>Male</option><option>Female</option><option>Other</option>
+        </select>
+      </label>
+      <label>Phone Number: <input type="tel" id="phone" pattern="[0-9]{10}" required></label>
+      <label>Email ID: <input type="email" id="email"></label>
+      <label>Address: <textarea id="address"></textarea></label>
+      <label>ID Type:
+        <select id="idType">
+          <option>Aadhar Card</option><option>PAN Card</option><option>Passport</option><option>Driving Licence</option>
+        </select>
+      </label>
+      <label>ID Number: <input type="text" id="idNumber"></label>
+      <h3>Room Details</h3>
+      <label>Date of Living: <input type="date" id="dateOfLiving"></label>
+      <label>No. of Guests:
+        <select id="guests">
+          <option>1</option><option>2</option><option>3</option><option>4</option>
+        </select>
+      </label>
+      <h3>Payment Details</h3>
+      <label>Room Rent Per Month: <input type="number" id="rent"></label>
+      <label>Advance Paid: <input type="number" id="advance"></label>
+      <label>Previous Electric Meter Reading: <input type="number" id="meter"></label>
+      <label>Upload Aadhaar Card: <input type="file" id="aadhaarUpload" required></label>
+      <label>Upload Signature: <input type="file" id="signatureUpload" required></label>
+      <button type="button" onclick="submitRegistration()">Submit Details</button>
+    </form>
+  </div>
+
+  <!-- Registration Confirmation -->
+  <div id="registrationConfirm" class="page">
+    <h2>Your Registration Number: <span id="regNumber"></span></h2>
+    <label>Create 4-digit Password: <input type="password" id="setPassword" maxlength="4" pattern="[0-9]{4}" required></label>
+    <label>Confirm Phone Number: <input type="tel" id="confirmPhone" pattern="[0-9]{10}" required></label>
+    <button onclick="generateOTP()">Get OTP</button>
+    <div id="otpSection" style="display:none;">
+      <p>Enter OTP (expires in 1 minute): <span id="otpDisplay"></span></p>
+      <input type="text" id="otpInput" maxlength="6">
+      <button onclick="verifyOTP()">Verify OTP</button>
+    </div>
+  </div>
+
+  <!-- Success Page -->
+  <div id="successPage" class="page">
+    <h2 id="welcomeMessage"></h2>
+    <p>Your registration is successful. You have to send your details to the owner.</p>
+    <button onclick="sendWhatsApp()">Send Details to Owner via WhatsApp</button>
+  </div>
+
+  <!-- Already Registered Login -->
+  <div id="alreadyRegistered" class="page">
+    <h2>Already Registered</h2>
+    <label>Registration Number: <input type="text" id="loginReg"></label>
+    <label>Password: <input type="password" id="loginPass"></label>
+    <button onclick="loginUser()">Login</button>
+  </div>
+
+  <!-- User Dashboard -->
+  <div id="dashboard" class="page">
+    <h2>Your Details</h2>
+    <pre id="userDetails"></pre>
+    <h3>Monthly Payments</h3>
+    <table id="paymentsTable">
+      <thead><tr><th>Month</th><th>Rent</th><th>Status</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+<script>
+  let currentReg = null;
+  let generatedOTP = null;
+  let otpTimer;
+
+  // Load registrations from localStorage
+  function getRegistrations() {
+    return JSON.parse(localStorage.getItem("registrations") || "{}");
+  }
+  function saveRegistrations(regs) {
+    localStorage.setItem("registrations", JSON.stringify(regs));
+  }
+
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function submitRegistration(){
+    let regNum = Math.floor(1000 + Math.random() * 9000);
+    currentReg = regNum;
+    let name = document.getElementById('fullName').value;
+    let registrations = getRegistrations();
+    registrations[regNum] = {
+      name,
+      phone: document.getElementById('phone').value,
+      rent: document.getElementById('rent').value,
+      details: {
+        gender: document.getElementById('gender').value,
+        email: document.getElementById('email').value,
+        address: document.getElementById('address').value,
+        idType: document.getElementById('idType').value,
+        idNumber: document.getElementById('idNumber').value,
+        dateOfLiving: document.getElementById('dateOfLiving').value,
+        guests: document.getElementById('guests').value,
+        advance: document.getElementById('advance').value,
+        meter: document.getElementById('meter').value
+      }
+    };
+    saveRegistrations(registrations);
+    document.getElementById('regNumber').innerText = regNum;
+    showPage('registrationConfirm');
+  }
+
+  function generateOTP(){
+    generatedOTP = Math.floor(100000 + Math.random()*900000).toString();
+    document.getElementById('otpDisplay').innerText = generatedOTP;
+    document.getElementById('otpSection').style.display = 'block';
+    clearTimeout(otpTimer);
+    otpTimer = setTimeout(()=>{generatedOTP=null; document.getElementById('otpDisplay').innerText='Expired';},60000);
+  }
+
+  function verifyOTP(){
+    if(document.getElementById('otpInput').value === generatedOTP){
+      let registrations = getRegistrations();
+      registrations[currentReg].password = document.getElementById('setPassword').value;
+      saveRegistrations(registrations);
+      let fullName = registrations[currentReg].name;
+      document.getElementById('welcomeMessage').innerText = `Welcome Mr. ${fullName}, your registration is successful!`;
+      showPage('successPage');
+    } else { alert('Invalid or expired OTP'); }
+  }
+
+  function sendWhatsApp(){
+    let registrations = getRegistrations();
+    let msg = `JP Residency Registration: ${currentReg}, Name: ${registrations[currentReg].name}`;
+    window.open(`https://wa.me/9942823314?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
+  function loginUser(){
+    let reg = document.getElementById('loginReg').value;
+    let pass = document.getElementById('loginPass').value;
+    let registrations = getRegistrations();
+    if(registrations[reg] && (registrations[reg].password===pass || pass==='AMS')){
+      currentReg = reg;
+      let info = registrations[reg];
+      document.getElementById('userDetails').innerText = JSON.stringify(info.details,null,2);
+      let tbody = document.querySelector('#paymentsTable tbody');
+      tbody.innerHTML = '';
+      let months = ['Jan 2025','Feb 2025','Mar 2025'];
+      months.forEach(m=>{
+        let row = document.createElement('tr');
+        row.innerHTML = `<td>${m}</td><td>${info.rent}</td><td contenteditable="${pass==='AMS'}">Pending</td>`;
+        tbody.appendChild(row);
+      });
+      showPage('dashboard');
+    } else { alert('Invalid details'); }
+  }
+</script>
+</body>
+</html>
